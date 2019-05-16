@@ -1,0 +1,7 @@
+name: lectures
+channels:
+  - conda-forge
+dependencies:
+  - astropy
+  - matplotlib
+  - numpy
