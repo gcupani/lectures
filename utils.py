@@ -89,7 +89,7 @@ class Star():
             self.targ_mask = self.rows**2+self.cols**2<rad**2    
             self.bkg_mask = ~self.targ_mask
         
-    def photometry(self, gain=0.6, ron=28.8, rad=[12,24,36]):
+    def photometry(self, gain=0.6, ron=28.8, ron_npix=2500, rad=[12,24,36]):
 
         # Mask sub-image
         self.mask(rad)
@@ -105,11 +105,14 @@ class Star():
         self.bkg = bkg_mean*gain 
         self.bkg_noise = bkg_std*gain 
         self.targ_bkgsub = self.targ-bkg_mean
-        subtr_fact = np.nansum(self.targ_mask)/np.nansum(self.bkg_mask)
+        bkg_subfact = np.nansum(self.targ_mask)/np.nansum(self.bkg_mask)
     
+        # Compute RON subtraction. factor
+        ron_subfact = np.nansum(self.targ_mask)/ron_npix
+        
         # Compute flux and error
         self.flux = np.nansum(self.targ_bkgsub)*gain
-        self.error = np.sqrt(self.flux + 2*ron**2*npix + (1+subtr_fact)*self.bkg_noise**2*npix)
+        self.error = np.sqrt(self.flux + (1+ron_subfact)*ron**2*npix + (1+bkg_subfact)*self.bkg_noise**2*npix)
         self.snr = self.flux/self.error 
         
     def magnitude(self, ref):
