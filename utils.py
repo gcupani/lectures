@@ -73,7 +73,7 @@ def reduce(img, mbias, mflat):
 class Star():
     
     def __init__(self, img, reg, rad=[12,24,36]):
-        self.img = img
+        self.img = np.array(img, dtype=float)
         self.reg = reg
         
         self.sub_img = img[reg]
