@@ -28,8 +28,8 @@ def plot_graph(x, y=None, new=True, mode='plot', xlabel=None, ylabel=None, **kwa
         else:
             x, y = range(len(x)), x
     if new: plt.figure(figsize=figsize)
-    if mode not in ['plot', 'scatter']:
-        print("Only `plot` and `scatter` available for graphs. Using `plot`.")
+    if mode not in ['plot', 'scatter', 'errorbar']:
+        print("Only `plot`, `scatter` or `errorbar` available for graphs. Using `plot`.")
         mode = 'plot'
     getattr(plt, mode)(x, y, **kwargs)
     if xlabel!=None: plt.xlabel(xlabel)
@@ -69,4 +69,48 @@ def reduce(img, mbias, mflat):
     debiased = img-mbias
     ff = debiased/mflat
     return debiased, ff
+
+class Star():
     
+    def __init__(self, img, reg, rad=[12,24,36]):
+        self.img = img
+        self.reg = reg
+        
+        self.sub_img = img[reg]
+        shape = self.sub_img.shape
+        self.xc, self.yc = extrema(self.sub_img)    
+        self.rows, self.cols = np.ogrid[-self.yc:shape[0]-self.yc, -self.xc:shape[1]-self.xc]
+
+    def mask(self, rad):
+        if isinstance(rad, list) and len(rad)>1:
+            self.targ_mask = self.rows**2+self.cols**2<rad[0]**2    
+            self.bkg_mask = np.logical_and(self.rows**2+self.cols**2>rad[-2]**2,self.rows**2+self.cols**2<rad[-1]**2)    
+        else:
+            self.targ_mask = self.rows**2+self.cols**2<rad**2    
+            self.bkg_mask = ~self.targ_mask
+        
+    def photometry(self, gain=0.6, ron=28.8, rad=[12,24,36]):
+
+        # Mask sub-image
+        self.mask(rad)
+        self.targ = np.copy(self.sub_img)
+        self.bkg = np.copy(self.sub_img)
+        self.targ[~self.targ_mask] = np.nan
+        self.bkg[~self.bkg_mask] = np.nan
+        npix = np.nansum(self.targ_mask)
+    
+        # Subtract background
+        bkg_mean = np.nanmean(self.bkg)
+        bkg_std = np.nanstd(self.bkg)
+        self.bkg = bkg_mean*gain 
+        self.bkg_noise = bkg_std*gain 
+        self.targ_bkgsub = self.targ-bkg_mean
+        subtr_fact = np.nansum(self.targ_mask)/np.nansum(self.bkg_mask)
+    
+        # Compute flux and error
+        self.flux = np.nansum(self.targ_bkgsub)*gain
+        self.error = np.sqrt(self.flux + 2*ron**2*npix + (1+subtr_fact)*self.bkg_noise**2*npix)
+        self.snr = self.flux/self.error 
+        
+    def magnitude(self, ref):
+        self.mag = ref.mag - 2.5*(np.log10(self.flux)-np.log10(ref.flux))    
