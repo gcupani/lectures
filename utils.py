@@ -89,7 +89,7 @@ class Star():
             self.targ_mask = self.rows**2+self.cols**2<rad**2    
             self.bkg_mask = ~self.targ_mask
         
-    def photometry(self, gain=0.6, ron=28.8, ron_npix=2500, rad=[12,24,36]):
+    def photometry(self, gain=0.6, ron=28.8, ron_npix=17500, rad=[12,24,36]):
 
         # Mask sub-image
         self.mask(rad)
