@@ -1,3 +1,4 @@
+from IPython import display
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -51,6 +52,7 @@ def plot_img(img, new=True, **kwargs):
     
 def plot_img_medrange(img, hrange=200, **kwargs):
     """ @brief Plot a sequence of images with proper formatting 
+        @param hrange Half-range around the median 
         @param **kwargs Keyword arguments of imshow
     """
 
@@ -59,13 +61,38 @@ def plot_img_medrange(img, hrange=200, **kwargs):
     plot_img(img, vmin=vmin, vmax=vmax, **kwargs)
     
     
-def reduce(img, mbias, mflat):
+def plot_refresh(i=None):
+    """ @brief Refresh the image during iterative plot
+        @param i iterative
+    """
+    
+    if i != None:
+        plt.text(x=0, y=1.0, s=i, color='black', ha='left', va='bottom', fontsize='xx-large', 
+                 transform=plt.axes().transAxes)
+    display.clear_output(wait=True)
+    display.display(plt.gcf())
+    plt.close()
+    
+    
+def reduce(img, mbias, mflat, flip=False):
     """ @brief Reduce a science image
         @param img Science image
         @param mbias Master bias
         @param mflat Master flat
     """
     
+    null_rows = np.append(np.where(np.sum(img, axis=1)==0),0)
+    null_cols = np.append(np.where(np.sum(img, axis=0)==0),0)
+
+    shift_rows = (len(null_rows)-1)*(-1)**(null_rows[0]!=0)
+    shift_cols = (len(null_cols)-1)*(-1)**(null_cols[0]!=0)
+
+    if flip: 
+        mbias = np.flip(mbias) 
+        mflat = np.flip(mflat)
+    mbias = np.roll(np.roll(mbias, shift_rows, axis=0), shift_cols, axis=1)
+    mflat = np.roll(np.roll(mflat, shift_rows, axis=0), shift_cols, axis=1)
+
     debiased = img-mbias
     ff = debiased/mflat
     return debiased, ff
